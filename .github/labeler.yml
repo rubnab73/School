@@ -1,56 +1,73 @@
 # Configuration for automatically labeling pull requests based on changed files
+# Format for actions/labeler@v5
 
 # Java code changes
-'java':
-  - '**/*.java'
+java:
+  - changed-files:
+    - any-glob-to-any-file: '**/*.java'
 
 # Test changes
-'tests':
-  - 'src/test/**/*'
-  - '**/*Test.java'
-  - '**/*Tests.java'
+tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/test/**/*'
+      - '**/*Test.java'
+      - '**/*Tests.java'
 
 # Configuration changes
-'configuration':
-  - '**/*.yml'
-  - '**/*.yaml'
-  - '**/*.properties'
-  - '**/pom.xml'
+configuration:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '**/*.properties'
+      - '**/pom.xml'
 
 # Documentation changes
-'documentation':
-  - '**/*.md'
-  - 'docs/**/*'
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
 
 # Frontend/Templates
-'frontend':
-  - 'src/main/resources/templates/**/*'
-  - 'src/main/resources/static/**/*'
-  - '**/*.html'
-  - '**/*.css'
-  - '**/*.js'
+frontend:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/main/resources/templates/**/*'
+      - 'src/main/resources/static/**/*'
+      - '**/*.html'
+      - '**/*.css'
+      - '**/*.js'
 
 # Controllers
-'controller':
-  - 'src/main/java/**/controller/**/*'
+controller:
+  - changed-files:
+    - any-glob-to-any-file: 'src/main/java/**/controller/**/*'
 
 # Services
-'service':
-  - 'src/main/java/**/service/**/*'
+service:
+  - changed-files:
+    - any-glob-to-any-file: 'src/main/java/**/service/**/*'
 
 # Repository/Data Layer
-'repository':
-  - 'src/main/java/**/repository/**/*'
+repository:
+  - changed-files:
+    - any-glob-to-any-file: 'src/main/java/**/repository/**/*'
 
 # Models/Entities
-'model':
-  - 'src/main/java/**/model/**/*'
+model:
+  - changed-files:
+    - any-glob-to-any-file: 'src/main/java/**/model/**/*'
 
 # Security
-'security':
-  - 'src/main/java/**/config/SecurityConfig.java'
-  - 'src/main/java/**/service/*UserDetails*.java'
+security:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/main/java/**/config/SecurityConfig.java'
+      - 'src/main/java/**/service/*UserDetails*.java'
 
 # CI/CD
-'ci/cd':
-  - '.github/**/*'
+ci-cd:
+  - changed-files:
+    - any-glob-to-any-file: '.github/**/*'
