@@ -1,0 +1,76 @@
+name: Run Tests
+
+on:
+  # Trigger on pull requests to any branch
+  pull_request:
+    branches: [ "**" ]
+  
+  # Trigger on push/merge to main and master branches
+  push:
+    branches: [ "main", "master" ]
+  
+  # Allow manual workflow dispatch
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Unit and Integration Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Cache Maven packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Build with Maven
+      run: ./mvnw clean compile -B
+      
+    - name: Run all tests
+      run: ./mvnw test -B
+      
+    - name: Generate test report
+      if: always()
+      uses: dorny/test-reporter@v1
+      with:
+        name: Maven Tests Report
+        path: target/surefire-reports/*.xml
+        reporter: java-junit
+        fail-on-error: true
+        
+    - name: Publish test results
+      if: always()
+      uses: EnricoMi/publish-unit-test-result-action/composite@v2
+      with:
+        files: |
+          target/surefire-reports/*.xml
+        check_name: Test Results
+        comment_mode: always
+        
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: target/surefire-reports/
+        retention-days: 30
+        
+    - name: Upload coverage reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-reports
+        path: target/site/
+        retention-days: 30

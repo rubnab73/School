@@ -1,0 +1,56 @@
+# Configuration for automatically labeling pull requests based on changed files
+
+# Java code changes
+'java':
+  - '**/*.java'
+
+# Test changes
+'tests':
+  - 'src/test/**/*'
+  - '**/*Test.java'
+  - '**/*Tests.java'
+
+# Configuration changes
+'configuration':
+  - '**/*.yml'
+  - '**/*.yaml'
+  - '**/*.properties'
+  - '**/pom.xml'
+
+# Documentation changes
+'documentation':
+  - '**/*.md'
+  - 'docs/**/*'
+
+# Frontend/Templates
+'frontend':
+  - 'src/main/resources/templates/**/*'
+  - 'src/main/resources/static/**/*'
+  - '**/*.html'
+  - '**/*.css'
+  - '**/*.js'
+
+# Controllers
+'controller':
+  - 'src/main/java/**/controller/**/*'
+
+# Services
+'service':
+  - 'src/main/java/**/service/**/*'
+
+# Repository/Data Layer
+'repository':
+  - 'src/main/java/**/repository/**/*'
+
+# Models/Entities
+'model':
+  - 'src/main/java/**/model/**/*'
+
+# Security
+'security':
+  - 'src/main/java/**/config/SecurityConfig.java'
+  - 'src/main/java/**/service/*UserDetails*.java'
+
+# CI/CD
+'ci/cd':
+  - '.github/**/*'
