@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop, test2 ]
+    branches: [ main, test2 ]
   pull_request:
-    branches: [ main, develop, test2 ]
+    branches: [ main,test2 ]
   schedule:
     - cron: '0 2 * * 0'  # Weekly security scan on Sunday
 
@@ -228,13 +228,15 @@ jobs:
           script: |
             const buildStatus = '${{ needs.build.result }}';
             const codeQualityStatus = '${{ needs.code-quality.result }}';
+            const buildStatusEmoji = buildStatus === 'success' ? '✅ Passed' : '❌ Failed';
+            const codeQualityEmoji = codeQualityStatus === 'success' ? '✅ Passed' : '❌ Failed';
             const comment = `
             ## 🔍 CI/CD Pipeline Results
             
             | Check | Status |
             |-------|--------|
-            | Build & Test | ${{ needs.build.result == 'success' ? '✅ Passed' : '❌ Failed' }} |
-            | Code Quality | ${{ needs.code-quality.result == 'success' ? '✅ Passed' : '❌ Failed' }} |
+            | Build & Test | ${buildStatusEmoji} |
+            | Code Quality | ${codeQualityEmoji} |
             
             [View workflow run](${context.payload.pull_request?.html_url || context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             `;
