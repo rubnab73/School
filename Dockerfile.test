@@ -1,0 +1,16 @@
+# Dockerfile for running tests
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
+
+# Copy Maven wrapper and pom.xml
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
+
+# Download dependencies
+RUN ./mvnw dependency:go-offline
+
+# Copy source code
+COPY src ./src
+
+# Run tests
+CMD ["./mvnw", "clean", "test"]

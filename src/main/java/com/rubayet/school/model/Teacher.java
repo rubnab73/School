@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -33,5 +34,5 @@ public class Teacher {
 
     @OneToMany(mappedBy = "teacher")
     @ToString.Exclude // Good practice to exclude relations
-    private List<Course> courses;
+    private List<Course> courses = new ArrayList<>();
 }

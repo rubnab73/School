@@ -6,4 +6,32 @@ services:
       - 'POSTGRES_PASSWORD=rubay'
       - 'POSTGRES_USER=schooluser'
     ports:
-      - '5432'
+      - '5432:5432'
+    networks:
+      - school-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schooluser -d schooldb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+    environment:
+      - 'SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/schooldb'
+      - 'SPRING_DATASOURCE_USERNAME=schooluser'
+      - 'SPRING_DATASOURCE_PASSWORD=rubay'
+      - 'SPRING_JPA_HIBERNATE_DDL_AUTO=update'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - school-network
+
+networks:
+  school-network:
+    driver: bridge

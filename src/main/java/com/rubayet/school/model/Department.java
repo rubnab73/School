@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -20,10 +21,10 @@ public class Department {
     // "mappedBy" tells Hibernate: "Go look at the 'department' field in the Student class to find the configuration."
     @OneToMany(mappedBy = "department")
     @ToString.Exclude
-    private List<Student> students;
+    private List<Student> students = new ArrayList<>();
 
     // One Department has many Teachers
     @OneToMany(mappedBy = "department")
     @ToString.Exclude
-    private List<Teacher> teachers;
+    private List<Teacher> teachers = new ArrayList<>();
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -37,5 +38,5 @@ public class Student {
             inverseJoinColumns = @JoinColumn(name = "course_id")
     )
     @ToString.Exclude
-    private List<Course> courses;
+    private List<Course> courses = new ArrayList<>();
 }
