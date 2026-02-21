@@ -45,24 +45,6 @@ jobs:
     - name: Run all tests
       run: ./mvnw test -B
       continue-on-error: false
-      
-    - name: Generate test report
-      if: always()
-      uses: dorny/test-reporter@v1
-      with:
-        name: Maven Tests Report
-        path: target/surefire-reports/*.xml
-        reporter: java-junit
-        fail-on-error: true
-        
-    - name: Publish test results
-      if: always()
-      uses: EnricoMi/publish-unit-test-result-action/composite@v2
-      with:
-        files: |
-          target/surefire-reports/*.xml
-        check_name: Test Results
-        comment_mode: always
         
     - name: Upload test results
       if: always()
