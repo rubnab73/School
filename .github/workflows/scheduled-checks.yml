@@ -38,7 +38,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Dependency Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dependency-report
           path: target/site/
@@ -100,7 +100,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Security Audit Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: security-audit
           path: dependency-check-report.json
