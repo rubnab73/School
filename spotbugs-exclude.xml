@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Exclude test classes from SpotBugs analysis -->
+    <Match>
+        <Class name="~.*\..*Test.*"/>
+    </Match>
+
+    <!-- Exclude Spring configuration classes -->
+    <Match>
+        <Class name="~.*\..*Config.*"/>
+    </Match>
+
+    <!-- Exclude Spring Application class -->
+    <Match>
+        <Class name="~.*\..*Application.*"/>
+    </Match>
+
+    <!-- Common false positives in Spring applications -->
+    <!-- EI_EXPOSE_REP: Exposing internal representation by returning reference -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE: Often false positive in Optional usage -->
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Class name="~.*\..*Repository.*"/>
+    </Match>
+
+    <!-- REC_CATCH_EXCEPTION: Catching Exception is sometimes necessary -->
+    <Match>
+        <Bug pattern="REC_CATCH_EXCEPTION"/>
+        <Method name="~executeUpdate|save|delete"/>
+    </Match>
+
+    <!-- SE_BAD_FIELD: Serialization issues for transient fields -->
+    <Match>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+</FindBugsFilter>

@@ -1,0 +1,9 @@
+# Code owners for automatic review assignment
+* @rubay
+
+# Specific paths
+src/main/java/com/rubayet/school/config/ @rubay
+src/main/java/com/rubayet/school/security/ @rubay
+src/test/ @rubay
+.github/ @rubay
+pom.xml @rubay

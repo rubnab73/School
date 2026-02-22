@@ -1,0 +1,248 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, test2 ]
+  pull_request:
+    branches: [ main,test2 ]
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly security scan on Sunday
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: schooldb
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: schooluser
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Maven clean
+        run: mvn clean
+
+      - name: Build with Maven
+        run: mvn compile -DskipTests
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/schooldb
+          SPRING_DATASOURCE_USERNAME: schooluser
+          SPRING_DATASOURCE_PASSWORD: test
+
+      - name: Run Unit Tests
+        run: mvn test
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/schooldb
+          SPRING_DATASOURCE_USERNAME: schooluser
+          SPRING_DATASOURCE_PASSWORD: test
+
+      - name: Run Integration Tests
+        run: mvn verify -Dgroups=integration
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/schooldb
+          SPRING_DATASOURCE_USERNAME: schooluser
+          SPRING_DATASOURCE_PASSWORD: test
+        continue-on-error: true
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: target/surefire-reports/*.xml
+          comment_mode: always
+          check_name: Test Results
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: target/surefire-reports/
+
+      - name: Build JAR
+        run: mvn package -DskipTests
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: school-app
+          path: target/School-*.jar
+          retention-days: 30
+
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run SonarQube Analysis
+        run: |
+          mvn clean verify sonar:sonar \
+            -Dsonar.projectKey=school-app \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+            2>&1 | grep -v "Unable to locate the server" || true
+        continue-on-error: true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Run SpotBugs Security Analysis
+        run: mvn spotbugs:check
+        continue-on-error: true
+
+      - name: Run PMD Code Analysis
+        run: mvn pmd:check
+        continue-on-error: true
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          path: '.'
+          format: 'SARIF'
+          args: >
+            --enableExperimental
+            --enableRetired
+            --scan ./target/School-*.jar
+        continue-on-error: true
+
+      - name: Upload Dependency Check Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'dependency-check-report.sarif'
+        continue-on-error: true
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload Trivy Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref_name != 'test2'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        continue-on-error: true
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ secrets.DOCKER_USERNAME != '' }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/school-app:${{ github.sha }}, ${{ secrets.DOCKER_USERNAME }}/school-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        continue-on-error: true
+
+  notify:
+    name: Notify On Status
+    runs-on: ubuntu-latest
+    needs: [ build, code-quality ]
+    if: always()
+
+    steps:
+      - name: Determine Status
+        id: status
+        run: |
+          if [ "${{ needs.build.result }}" == "failure" ] || [ "${{ needs.code-quality.result }}" == "failure" ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const buildStatus = '${{ needs.build.result }}';
+            const codeQualityStatus = '${{ needs.code-quality.result }}';
+            const buildStatusEmoji = buildStatus === 'success' ? '✅ Passed' : '❌ Failed';
+            const codeQualityEmoji = codeQualityStatus === 'success' ? '✅ Passed' : '❌ Failed';
+            const comment = `
+            ## 🔍 CI/CD Pipeline Results
+            
+            | Check | Status |
+            |-------|--------|
+            | Build & Test | ${buildStatusEmoji} |
+            | Code Quality | ${codeQualityEmoji} |
+            
+            [View workflow run](${context.payload.pull_request?.html_url || context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            `;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

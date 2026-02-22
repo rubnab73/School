@@ -1,0 +1,160 @@
+name: Scheduled Checks
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'   # Weekly on Sunday at 2 AM UTC
+    - cron: '0 0 * * *'   # Daily at midnight UTC
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  dependency-updates:
+    name: Check Dependency Updates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Check for Dependency Updates
+        run: mvn versions:display-dependency-updates
+        continue-on-error: true
+
+      - name: Check for Plugin Updates
+        run: mvn versions:display-plugin-updates
+        continue-on-error: true
+
+      - name: Generate Dependency Report
+        run: mvn project-info-reports:dependencies
+        continue-on-error: true
+
+      - name: Upload Dependency Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-report
+          path: target/site/
+        continue-on-error: true
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: schooldb
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: schooluser
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Performance Tests
+        run: mvn test -Dgroups=performance
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/schooldb
+          SPRING_DATASOURCE_USERNAME: schooluser
+          SPRING_DATASOURCE_PASSWORD: test
+        continue-on-error: true
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          path: '.'
+          format: 'JSON'
+          args: >
+            --enableExperimental
+      continue-on-error: true
+
+      - name: Upload Security Audit Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit
+          path: dependency-check-report.json
+        continue-on-error: true
+
+  code-coverage:
+    name: Code Coverage Check
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: schooldb
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: schooluser
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Generate Coverage Report
+        run: mvn clean test jacoco:report
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/schooldb
+          SPRING_DATASOURCE_USERNAME: schooluser
+          SPRING_DATASOURCE_PASSWORD: test
+        continue-on-error: true
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./target/site/jacoco/jacoco.xml
+          flags: unittests
+          name: codecov-umbrella
+        continue-on-error: true
+
+      - name: Comment Coverage on PR
+        uses: romeovs/lcov-reporter-action@v0.3.1
+        if: github.event_name == 'pull_request'
+        with:
+          lcov-file: ./target/site/jacoco/jacoco.xml
+        continue-on-error: true
