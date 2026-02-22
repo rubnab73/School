@@ -19,7 +19,6 @@ updates:
       include: "scope"
     allow:
       - dependency-type: "all"
-    ignore: []
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
@@ -37,3 +36,5 @@ updates:
     commit-message:
       prefix: "ci(deps):"
       include: "scope"
+    allow:
+      - dependency-type: "all"
